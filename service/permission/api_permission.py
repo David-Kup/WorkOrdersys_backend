@@ -22,6 +22,7 @@ class ApiPermissionCheck(MiddlewareMixin):
             return
         if request.path.startswith('/api/'):
             # for common check
+            print(request)
             if request.user.is_authenticated:
                 request.META.update(dict(HTTP_APPNAME='loonflow'))
                 request.META.update(dict(HTTP_USERNAME=request.user.username))

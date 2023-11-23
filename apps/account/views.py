@@ -550,8 +550,19 @@ class LoonLogoutView(LoonBaseView):
 
 
 class LoonJwtLoginView(LoonBaseView):
+    def get_client_ip(self, request):
+        # Get the client's IP address from the request's META attribute
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+
     def post(self, request, *args, **kwargs):
+        print('This is client ip => ', self.get_client_ip(request))
         json_str = request.body.decode('utf-8')
+
         if not json_str:
             return api_response(-1, 'invalid args', {})
         request_data_dict = json.loads(json_str)
@@ -571,7 +582,7 @@ class LoonJwtLoginView(LoonBaseView):
                 return api_response(0, '', {'jwt': jwt_info})
         else:
             return api_response(-1, 'username or password is invalid', {})
-
+        
 
 @method_decorator(login_required, name='dispatch')
 class LoonUserRoleView(LoonBaseView):
