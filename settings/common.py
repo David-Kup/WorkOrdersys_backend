@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'apps.account',
     'apps.ticket',
     'apps.workflow',
+    'apps.wo_iprestrict',
 
     'corsheaders',
     'iprestrict'

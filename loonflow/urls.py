@@ -28,4 +28,5 @@ urlpatterns = [
     path('api/v1.0/tickets', include('apps.ticket.urls')),
     path('api/v1.0/workflows', include('apps.workflow.urls')),
 
+    path('api/v1.0/ip_restricts', include('apps.wo_iprestrict.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
