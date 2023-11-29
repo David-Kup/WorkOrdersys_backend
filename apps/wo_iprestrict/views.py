@@ -1,9 +1,9 @@
 from django.shortcuts import render, get_object_or_404, redirect
-import json
+import json, platform, subprocess
 
 from service.format_response import api_response
 
-from iprestrict.models import IPRange
+from iprestrict.models import IPRange, Rule
 from .form import IPRangeForm
 
 
@@ -23,6 +23,7 @@ def ip_range_create(request):
         form = IPRangeForm(payload)
         if form.is_valid():
             form.save()
+            reload_rules_command()
             return api_response(200, 'sucess')
     print(form.errors.as_data())
     errors = {field: [str(error) for error in error_list] for field, error_list in form.errors.as_data().items()}
@@ -36,6 +37,7 @@ def ip_range_update(request, pk):
     form = IPRangeForm(payload, instance=ip_range)
     if form.is_valid():
         form.save()
+        reload_rules_command()
         return api_response(200, 'sucess')
     else:
         print(form.errors.as_data())
@@ -46,4 +48,18 @@ def ip_range_delete(request, pk):
     ip_range = get_object_or_404(IPRange, pk=pk)
     print(ip_range)
     ip_range.delete()
+    reload_rules_command()
     return api_response(200, 'sucess')
+
+
+def reload_rules_command():
+    current_os = platform.system()
+
+    if current_os == 'Linux':
+        command = "source venv/bin/activate && python3 manage.py reload_rules"
+    elif current_os == 'Windows':
+        command = "venv\\Scripts\\activate && python manage.py reload_rules"
+    else:
+        raise NotImplementedError(f"Unsupported operating system: {current_os}")
+
+    subprocess.run(command, shell=True)
