@@ -309,6 +309,7 @@ class TicketBaseService(BaseService):
         flag, workflow_base_obj = workflow_base_service_ins.get_by_id(workflow_id)
         title_template = workflow_base_obj.title_template
         title = request_data_dict.get('title', '')
+        urgency_level = request_data_dict.get('urgency_level', '普通')
         import copy
         title_render_data = copy.deepcopy(request_data_dict)
         now_time = str(datetime.datetime.now())[:19]
@@ -329,7 +330,7 @@ class TicketBaseService(BaseService):
                                       parent_ticket_state_id=parent_ticket_state_id,
                                       participant=destination_participant,
                                       participant_type_id=destination_participant_type_id, relation=username,
-                                      creator=username, act_state_id=act_state_id, multi_all_person=multi_all_person)
+                                      creator=username, act_state_id=act_state_id, multi_all_person=multi_all_person, urgency_level=urgency_level)
         new_ticket_obj.save()
 
         # 更新工单关系人

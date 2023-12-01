@@ -62,4 +62,9 @@ def reload_rules_command():
     else:
         raise NotImplementedError(f"Unsupported operating system: {current_os}")
 
-    subprocess.run(command, shell=True)
+     # Capture the output
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+
+    # Access the output
+    output = result.stdout
+    print('outer cmd is => \n', output)
