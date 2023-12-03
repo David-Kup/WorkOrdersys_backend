@@ -19,9 +19,9 @@ class LoonUserView(LoonBaseView):
     post_schema = Schema({
         'username': And(str, lambda n: n != '', error='username is needed'),
         'alias': And(str, lambda n: n != '', error='alias is needed'),
-        'email': And(str, lambda n: n != '', error='alias is needed'),
+        # 'email': And(str, lambda n: n != '', error='alias is needed'),
         Optional('password'): str,
-        'phone': str,
+        # 'phone': str,
         'dept_ids': str,
         'type_id': int,
         'is_active': Use(bool),
@@ -75,6 +75,10 @@ class LoonUserView(LoonBaseView):
         is_active = request_data_dict.get('is_active')
         type_id = request_data_dict.get('type_id')
         creator = request.user.username
+        if (email == None):
+            email = ''
+        if (phone == None):
+            phone = ''
         flag, result = account_base_service_ins.add_user(username, alias, email, phone, dept_ids, is_active, type_id, creator, password)
         if flag is False:
             code, msg, data = -1, result, {}
