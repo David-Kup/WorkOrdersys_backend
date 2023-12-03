@@ -68,3 +68,22 @@ def reload_rules_command():
     # Access the output
     output = result.stdout
     print('outer cmd is => \n', output)
+    
+def ip_restrict_turn(request):
+    if request.method == 'GET':
+        rule = Rule.objects.filter(ip_group_id=1).values().first()
+        print(rule)
+        return api_response(200, 'success', rule)
+    else:
+        rule_to_update = Rule.objects.get(ip_group_id=1)
+        if rule_to_update.action == "D":
+            new_action = "A"
+        else:
+            new_action = "D"
+
+        # Update the fields
+        rule_to_update.action = new_action
+        # Save the changes
+        rule_to_update.save()
+        reload_rules_command()
+        return api_response(200, 'sucess')
