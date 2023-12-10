@@ -22,6 +22,7 @@ class TicketRecord(BaseModel):
     act_state_id = models.IntegerField('进行状态', default=1, help_text='当前工单的进行状态,详见service.constant_service中定义')
     multi_all_person = models.CharField('全部处理的结果', max_length=1000, default='{}', blank=True, help_text='需要当前状态处理人全部处理时实际的处理结果，json格式')
     urgency_level = models.CharField('工单提交页面有', max_length=1000, default='普通', blank=True, help_text='工单提交页面有')
+    content = models.CharField('内容', max_length=1000, default='', blank=True, help_text='内容')
 
 class TicketFlowLog(BaseModel):
     """
@@ -73,3 +74,8 @@ class TicketUser(BaseModel):
     username = models.CharField('关系人', max_length=100)
     in_process = models.BooleanField('待处理中', default=False)
     worked = models.BooleanField('处理过', default=False)
+
+class TicketFiles(BaseModel):
+    ticket = models.ForeignKey(TicketRecord, to_field='id', db_constraint=False, on_delete=models.DO_NOTHING)
+    file_name = models.CharField('', max_length=100)
+
