@@ -128,7 +128,7 @@ class LoonUser(AbstractBaseUser):
     """
     username = models.CharField('用户名', max_length=50, unique=True)
     alias = models.CharField('姓名', max_length=50, default='')
-    email = models.EmailField('邮箱', max_length=255, default='')
+    email = models.EmailField('邮箱', max_length=255)
     phone = models.CharField('电话', max_length=13, default='')
     is_active = models.BooleanField('已激活', default=True)
     type_id = models.IntegerField('用户类型', default=0)  # 见service.common.constant_service中定义
@@ -140,7 +140,7 @@ class LoonUser(AbstractBaseUser):
 
     objects = LoonUserManager()
     USERNAME_FIELD = 'username'
-    # REQUIRED_FIELDS = ['email']
+    REQUIRED_FIELDS = ['email']
 
     @property
     def is_staff(self):

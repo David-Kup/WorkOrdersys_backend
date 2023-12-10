@@ -9,7 +9,7 @@ from django.db.models import Q
 from django.conf import settings
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from apps.workflow.models import CustomField
-from apps.ticket.models import TicketRecord, TicketCustomField, TicketFlowLog, TicketUser
+from apps.ticket.models import TicketRecord, TicketCustomField, TicketFlowLog, TicketUser, TicketFiles
 from service.redis_pool import POOL
 from service.base_service import BaseService
 from service.common.log_service import auto_log
@@ -309,7 +309,9 @@ class TicketBaseService(BaseService):
         flag, workflow_base_obj = workflow_base_service_ins.get_by_id(workflow_id)
         title_template = workflow_base_obj.title_template
         title = request_data_dict.get('title', '')
+        content = request_data_dict.get('content', '')
         urgency_level = request_data_dict.get('urgency_level', '普通')
+        fileList = request_data_dict.get('attachement', [])
         import copy
         title_render_data = copy.deepcopy(request_data_dict)
         now_time = str(datetime.datetime.now())[:19]
@@ -330,8 +332,15 @@ class TicketBaseService(BaseService):
                                       parent_ticket_state_id=parent_ticket_state_id,
                                       participant=destination_participant,
                                       participant_type_id=destination_participant_type_id, relation=username,
-                                      creator=username, act_state_id=act_state_id, multi_all_person=multi_all_person, urgency_level=urgency_level)
+                                      creator=username, act_state_id=act_state_id, multi_all_person=multi_all_person, urgency_level=urgency_level, content=content)
         new_ticket_obj.save()
+
+        #save attachment info
+        for file_name in fileList:
+            print(fileList, file_name)
+            ticket_file_instance = TicketFiles(ticket_id=new_ticket_obj.id, file_name=file_name)
+            ticket_file_instance.save()
+
 
         # 更新工单关系人
         flag, result = cls.get_ticket_dest_relation(destination_participant_type_id, destination_participant)
@@ -716,7 +725,11 @@ class TicketBaseService(BaseService):
         else:
             state_info = dict(id=ticket_obj.state_id, name='--状态已被删除--')
         ticket_result_dict = ticket_obj.get_dict()
-        ticket_result_dict.update(dict(field_list=new_field_list, creator_info=creator_info, state_info=state_info))
+        file_list = TicketFiles.objects.filter(ticket_id=ticket_id, is_deleted=0).values_list('file_name', flat=True)
+        file_list = list(file_list)
+        print(file_list)
+
+        ticket_result_dict.update(dict(field_list=new_field_list, creator_info=creator_info, state_info=state_info, file_list=file_list))
         return True, ticket_result_dict
 
     @classmethod

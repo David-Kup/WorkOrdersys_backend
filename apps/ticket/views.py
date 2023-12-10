@@ -4,6 +4,7 @@ from django.views import View
 from schema import Schema, Regex, And, Or, Use, Optional
 
 from apps.loon_base_view import LoonBaseView
+from apps.ticket.models import TicketFiles, TicketRecord
 from service.account.account_base_service import account_base_service_ins
 from service.format_response import api_response
 from service.ticket.ticket_base_service import ticket_base_service_ins
@@ -178,6 +179,56 @@ class TicketView(LoonBaseView):
         else:
             return api_response(0, '', {})
 
+    def post(self, request, *args, **kwargs):
+        """
+        处理工单
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        json_str = request.body.decode('utf-8')
+        print(json_str)
+        if not json_str:
+            return api_response(-1, 'patch参数为空', {})
+        
+        request_data_dict = json.loads(json_str)
+
+        title = request_data_dict.get('title', '')
+        content = request_data_dict.get('content', '')
+        urgency_level = request_data_dict.get('urgency_level', '普通')
+        fileList = request_data_dict.get('attachement', [])
+
+        ticket_id = kwargs.get('ticket_id')
+        ticket_record = TicketRecord.objects.get(id=ticket_id)
+        print(ticket_record)
+        ticket_record.title = title
+        ticket_record.content = content
+        ticket_record.urgency_level = urgency_level
+        ticket_record.save()
+        print(ticket_record)
+
+
+        # Step 1: Retrieve all rows with the specific ticket_id
+        existing_files = TicketFiles.objects.filter(ticket_id=ticket_id, is_deleted=0)
+
+        # Step 2: Set is_deleted to 1 for rows not in the new_file_list
+        for existing_file in existing_files:
+            if existing_file.file_name not in fileList:
+                existing_file.is_deleted = True
+                existing_file.save()
+
+        # Step 3: Add new rows for ticket_id values not already in the table
+        for file_name in fileList:
+            # Check if a row already exists with the same ticket_id and file_name
+            existing_row = TicketFiles.objects.filter(ticket_id=ticket_id, file_name=file_name, is_deleted=0).first()
+
+            if not existing_row:
+                # If the row does not exist, create a new one
+                new_file_instance = TicketFiles(ticket_id=ticket_id, file_name=file_name)
+                new_file_instance.save()
+
+        return api_response(code=0, msg='', data=True)
 
 class TicketTransition(LoonBaseView):
     """

@@ -54,16 +54,21 @@ def ip_range_delete(request, pk):
 
 def reload_rules_command():
     current_os = platform.system()
+    print("Current OS:", current_os)
 
     if current_os == 'Linux':
-        command = "source venv/bin/activate && python3 manage.py reload_rules"
+        command = [
+            "bash",
+            "-c",
+            "source venv/bin/activate && python3 manage.py reload_rules"
+        ]
     elif current_os == 'Windows':
         command = "venv\\Scripts\\activate && python manage.py reload_rules"
     else:
         raise NotImplementedError(f"Unsupported operating system: {current_os}")
 
      # Capture the output
-    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+    result = subprocess.run(command, capture_output=True, text=True, shell=False)
 
     # Access the output
     output = result.stdout
