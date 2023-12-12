@@ -1,6 +1,7 @@
 import datetime, time
 from django.db import models
 from apps.loon_base_model import BaseModel
+from apps.account.models import LoonDept
 
 
 class TicketRecord(BaseModel):
@@ -37,6 +38,7 @@ class TicketFlowLog(BaseModel):
     state_id = models.IntegerField('当前状态id', default=0, blank=True)
     intervene_type_id = models.IntegerField('干预类型', default=0, help_text='见service.constant_service中定义')
     ticket_data = models.TextField('工单数据', default='', blank=True, help_text='可以用于记录当前表单数据，json格式')
+    log_type = models.IntegerField('建议类型', default=0, blank=True, help_text='建议类型')
 
 
 class TicketCustomField(BaseModel):
@@ -71,6 +73,7 @@ class TicketUser(BaseModel):
     工单关系人, 用于加速待办工单及关联工单列表查询
     """
     ticket = models.ForeignKey(TicketRecord, to_field='id', db_constraint=False, on_delete=models.DO_NOTHING)
+    dept = models.IntegerField('部门', default=None)
     username = models.CharField('关系人', max_length=100)
     in_process = models.BooleanField('待处理中', default=False)
     worked = models.BooleanField('处理过', default=False)

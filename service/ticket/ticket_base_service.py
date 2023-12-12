@@ -21,6 +21,9 @@ from service.workflow.workflow_state_service import workflow_state_service_ins
 from service.workflow.workflow_transition_service import workflow_transition_service_ins
 from service.workflow.workflow_custom_field_service import workflow_custom_field_service_ins
 
+from apps.account.models import LoonUserDept, LoonUser
+from django.core.exceptions import ObjectDoesNotExist
+
 
 class TicketBaseService(BaseService):
     """
@@ -150,7 +153,17 @@ class TicketBaseService(BaseService):
             ticket_objects = TicketRecord.objects.filter(query_params).order_by(order_by_str).distinct()
         elif category == 'duty':
             # 为了加快查询速度，该结果从ticket_usr表中获取。 对于部门、角色、这种处理人类型的，工单流转后 修改了部门或角色对应的人员会存在这些人无法在待办列表中查询到工单
-            duty_query_expression = Q(ticketuser__in_process=True, ticketuser__username=username)
+            # duty_query_expression = Q(ticketuser__in_process=True, ticketuser__username=username)
+            try:
+                user = LoonUser.objects.get(username=username)
+                user_dept = LoonUserDept.objects.get(user=user.id)
+                dept_id = user_dept.dept_id
+                print('user_dept => ', user_dept.dept, user_dept.dept_id, user_dept.id)
+            except ObjectDoesNotExist:
+                dept_id = None
+                print("No department found for the given username.")
+
+            duty_query_expression = Q(participant=dept_id)
             query_params &= duty_query_expression
             act_state_expression = ~Q(act_state_id__in=[
                 constant_service_ins.TICKET_ACT_STATE_FINISH,
@@ -1340,6 +1353,7 @@ class TicketBaseService(BaseService):
         :return:
         """
         # ticket record table, for display ticket detail
+        user_str = str(user_str)
         ticket_obj = TicketRecord.objects.filter(id=ticket_id, is_deleted=False).first()
         new_relation_set = set(ticket_obj.relation.split(',') + user_str.split(',') + [ticket_creator])  # 去重， 但是可能存在空元素
         new_relation_list = [new_relation0 for new_relation0 in new_relation_set if new_relation0]  # 去掉空元素
@@ -1477,6 +1491,7 @@ class TicketBaseService(BaseService):
                                            participant=ticket_flow_log.participant,
                                            participant_info=participant_info,
                                            suggestion=ticket_flow_log.suggestion,
+                                           log_type=ticket_flow_log.log_type,
                                            gmt_created=str(ticket_flow_log.gmt_created)[:19]
                                            )
             if ticket_data:
@@ -1614,7 +1629,7 @@ class TicketBaseService(BaseService):
             flag, destination_participant_info = cls.get_ticket_state_participant_info(state_id, ticket_id=ticket_id)
             ticket_obj.state_id = state_id
             ticket_obj.participant_type_id = destination_participant_info.get('destination_participant_type_id', 0)
-            ticket_obj.participant = destination_participant_info.get('destination_participant', '')
+            # ticket_obj.participant = destination_participant_info.get('destination_participant', '')
             ticket_obj.multi_all_person = '{}'
             ticket_obj.save()
 
@@ -2231,7 +2246,7 @@ class TicketBaseService(BaseService):
 
     @classmethod
     @auto_log
-    def add_comment(cls, ticket_id: int=0, username: str='', suggestion: str='')->tuple:
+    def add_comment(cls, ticket_id: int=0, username: str='', suggestion: str='', log_type: int=0 )->tuple:
         """
         添加评论
         add comment to ticket
@@ -2254,7 +2269,7 @@ class TicketBaseService(BaseService):
                             participant_type_id=constant_service_ins.PARTICIPANT_TYPE_PERSONAL,
                             participant=username, state_id=all_ticket_data.get('state_id'),
                             intervene_type_id=constant_service_ins.TRANSITION_INTERVENE_TYPE_COMMENT,
-                            ticket_data=all_ticket_data_json, creator=username)
+                            ticket_data=all_ticket_data_json, creator=username, log_type=log_type)
 
         flag, msg = cls.add_ticket_flow_log(new_flow_log)
         if flag is False:
