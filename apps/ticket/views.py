@@ -342,14 +342,14 @@ class TicketState(LoonBaseView):
 
         app_name = request.META.get('HTTP_APPNAME')
         # 调用来源应用是否有此工单对应工作流的权限校验
-        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(app_name, ticket_id)
-        if not app_permission_check:
-            return api_response(-1, msg, '')
+        # app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(app_name, ticket_id)
+        # if not app_permission_check:
+        #     return api_response(-1, msg, '')
 
-        # 强制修改工单状态需要对应工作流的管理员或者超级管理员
-        flag, result = ticket_base_service_ins.ticket_admin_permission_check(ticket_id, username)
-        if flag is False:
-            return api_response(-1, result, {})
+        # # 强制修改工单状态需要对应工作流的管理员或者超级管理员
+        # flag, result = ticket_base_service_ins.ticket_admin_permission_check(ticket_id, username)
+        # if flag is False:
+        #     return api_response(-1, result, {})
 
         flag, result = ticket_base_service_ins.update_ticket_state(ticket_id, state_id, username, suggestion)
         if flag is False:
@@ -413,6 +413,7 @@ class TicketDeliver(LoonBaseView):
         'target_username': And(str, lambda n: n != '', error='target_username is needed'),
         Optional('from_admin'): int,
         Optional('suggestion'): str,
+        Optional('dept_id'): int,
     })
 
     def post(self, request, *args, **kwargs):
@@ -432,6 +433,8 @@ class TicketDeliver(LoonBaseView):
         suggestion = request_data_dict.get('suggestion', '')
         from_admin = request_data_dict.get('from_admin', 0)
 
+        dept_id = request_data_dict.get('dept_id', '')
+
         app_name = request.META.get('HTTP_APPNAME')
         app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(app_name, ticket_id)
         if not app_permission_check:
@@ -449,7 +452,9 @@ class TicketDeliver(LoonBaseView):
             if result.get('permission') is False:
                 return api_response(-1, result.get('msg'), {})
 
-        result, msg = ticket_base_service_ins.deliver_ticket(ticket_id, username, target_username, suggestion)
+        # result, msg = ticket_base_service_ins.deliver_ticket(ticket_id, username, target_username, suggestion)
+        # for department
+        result, msg = ticket_base_service_ins.deliver_ticket(ticket_id, username, dept_id, suggestion)
         if result:
             code, msg, data = 0, msg, result
         else:
@@ -586,9 +591,9 @@ class TicketScriptRetry(LoonBaseView):
 
 class TicketComment(LoonBaseView):
 
-    post_schema = Schema({
-        'suggestion': And(str, lambda n: n != '', error='suggestion is needed'),
-    })
+    # post_schema = Schema({
+    #     'suggestion': And(str, lambda n: n != '', error='suggestion is needed'),
+    # })
 
     def post(self, request, *args, **kwargs):
         """
@@ -606,6 +611,16 @@ class TicketComment(LoonBaseView):
         username = request.META.get('HTTP_USERNAME')
         suggestion = request_data_dict.get('suggestion', '')
         result, msg = ticket_base_service_ins.add_comment(ticket_id, username, suggestion)
+
+        attachement = request_data_dict.get('attachement', [])
+        print('add comment', len(attachement))
+        if (len(attachement) == 0):
+            log_type = 0
+        else:
+            log_type = 1
+            for suggestion in attachement:
+                result, msg = ticket_base_service_ins.add_comment(ticket_id, username, suggestion, log_type)
+
         if result:
             code, msg, data = 0, 'add ticket comment successful', {}
         else:

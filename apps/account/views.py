@@ -79,6 +79,8 @@ class LoonUserView(LoonBaseView):
             email = ''
         if (phone == None):
             phone = ''
+        if (dept_ids == None):
+            dept_ids = ''
         flag, result = account_base_service_ins.add_user(username, alias, email, phone, dept_ids, is_active, type_id, creator, password)
         if flag is False:
             code, msg, data = -1, result, {}
@@ -92,9 +94,9 @@ class LoonUserDetailView(LoonBaseView):
     patch_schema = Schema({
         'username': And(str, lambda n: n != ''),
         'alias': And(str, lambda n: n != ''),
-        'email': And(str, lambda n: n != ''),
+        # 'email': And(str, lambda n: n != ''),
         Optional('password'): str,
-        'phone': str,
+        # 'phone': str,
         'dept_ids': str,
         'is_active': Use(bool),
         'type_id': int
@@ -120,6 +122,14 @@ class LoonUserDetailView(LoonBaseView):
         type_id = request_data_dict.get('type_id')
 
         is_active = request_data_dict.get('is_active')
+
+        if (email == None):
+            email = ''
+        if (phone == None):
+            phone = ''
+        if (dept_ids == None):
+            dept_ids = ''
+
         flag, result = account_base_service_ins.edit_user(user_id, username, alias, email, phone, dept_ids, is_active,
                                                           type_id)
         if flag is not False:

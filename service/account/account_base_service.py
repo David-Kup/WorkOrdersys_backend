@@ -496,9 +496,12 @@ class AccountBaseService(BaseService):
         user_obj.save()
 
         queryset_list = []
-        for dept_id in dept_ids.split(','):
-            queryset_list.append(LoonUserDept(user_id=user_obj.id, dept_id=dept_id))
-        LoonUserDept.objects.bulk_create(queryset_list)
+        if(dept_ids!=''):
+            for dept_id in dept_ids.split(','):
+                queryset_list.append(LoonUserDept(user_id=user_obj.id, dept_id=dept_id))
+            print(queryset_list)
+            print(dept_ids.split(','))
+            LoonUserDept.objects.bulk_create(queryset_list)
 
         return True, dict(user_id=user_obj.id)
 
