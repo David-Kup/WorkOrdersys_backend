@@ -5,9 +5,10 @@ import jwt
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.contrib.auth.hashers import make_password
 from django.db.models import Q
-from apps.account.models import AppToken, LoonUser, LoonUserRole, LoonDept, LoonRole, LoonUserDept
+from apps.account.models import AppToken, LoonUser, LoonUserRole, LoonDept, LoonRole, LoonUserDept, LoonCompany
 from service.base_service import BaseService
 from service.common.constant_service import constant_service_ins
 from service.common.log_service import auto_log
@@ -691,8 +692,14 @@ class AccountBaseService(BaseService):
             dept_result_paginator = paginator.page(paginator.num_pages)
         dept_result_object_list = dept_result_paginator.object_list
         dept_result_object_format_list = []
+        print('++++++++++++++++++++++++++++++++++++++')
+
         for dept_result_object in dept_result_object_list:
             result_dict = dept_result_object.get_dict()
+            print('----------------------------------------------------------')
+            if(result_dict['company']):
+                result_dict['company'] = result_dict['company'].get_dict()
+            
             if simple:
                 simple_result_dict = dict()
                 simple_result_dict['id'] = result_dict['id']
@@ -704,7 +711,7 @@ class AccountBaseService(BaseService):
 
     @classmethod
     @auto_log
-    def add_dept(cls, name: str, parent_dept_id: int, leader: str, approver: str, label: str, creator: str)->tuple:
+    def add_dept(cls, name: str, parent_dept_id: int, leader: str, approver: str, label: str, creator: str, company_id: int)->tuple:
         """
         add department
         新增部门
@@ -716,8 +723,15 @@ class AccountBaseService(BaseService):
         :param creator:
         :return:
         """
+        if (company_id):
+            # Check if the company with the given ID exists and is active
+            try:
+                company = LoonCompany.objects.get(id=company_id, is_deleted=False)
+            except ObjectDoesNotExist:
+                raise ValidationError("Company with provided ID does not exist or is not active.")
+
         dept_obj = LoonDept(name=name, parent_dept_id=parent_dept_id, leader=leader, approver=approver, label=label,
-                            creator=creator)
+                            creator=creator, company_id=company_id)
         dept_obj.save()
         return True, dict(dept_id=dept_obj.id)
 
@@ -1009,6 +1023,98 @@ class AccountBaseService(BaseService):
         user_obj.password = new_password_format
         user_obj.save()
         return True, '密码修改成功'
+    
+
+
+    @classmethod
+    @auto_log
+    def get_company_list(cls, search_value: str, page: int=1, per_page: int=10, simple=False)->tuple:
+        """
+        get dept restful list by search params
+        :param search_value: department name or department description Support fuzzy queries
+        :param page:
+        :param per_page:
+        :param simple: 只返回部分数据
+        :return:
+        """
+        query_params = Q(is_deleted=False)
+        if search_value:
+            query_params &= Q(name__contains=search_value)
+        company_objects = LoonCompany.objects.filter(query_params)
+
+        paginator = Paginator(company_objects, per_page)
+        try:
+            company_result_paginator = paginator.page(page)
+        except PageNotAnInteger:
+            company_result_paginator = paginator.page(1)
+        except EmptyPage:
+            # If page is out of range (e.g. 9999), deliver last page of results
+            company_result_paginator = paginator.page(paginator.num_pages)
+        company_result_object_list = company_result_paginator.object_list
+        company_result_object_format_list = []
+        for dept_result_object in company_result_object_list:
+            result_dict = dept_result_object.get_dict()
+            if simple:
+                simple_result_dict = dict()
+                simple_result_dict['id'] = result_dict['id']
+                simple_result_dict['name'] = result_dict['name']
+                simple_result_dict['description'] = result_dict['description']
+            company_result_object_format_list.append(result_dict)
+        return True, dict(company_result_object_format_list=company_result_object_format_list,
+                          paginator_info=dict(per_page=per_page, page=page, total=paginator.count))
+
+    @classmethod
+    @auto_log
+    def add_company(cls, name: str, description: str, creator: str)->tuple:
+        """
+        add department
+        新增部门
+        :param name:
+        :param parent_dept_id:
+        :param leader:
+        :param approver:
+        :param label:
+        :param creator:
+        :return:
+        """
+        company_obj = LoonCompany(name=name, description=description, creator=creator)
+        company_obj.save()
+        return True, dict(company_id=company_obj.id)
+
+    @classmethod
+    @auto_log
+    def update_company(cls, company_id: int, name: str, description: str)->tuple:
+        """
+        update department record
+        更新部门
+        :param dept_id:
+        :param name:
+        :param parent_dept_id:
+        :param leader:
+        :param approver:
+        :param label:
+        :return:
+        """
+        company_queryset = LoonCompany.objects.filter(id=company_id, is_deleted=0)
+        if not company_queryset:
+            return False, 'dept is not existed or has been deleted'
+        company_queryset.update(name=name, description=description)
+        return True, ''
+
+    @classmethod
+    @auto_log
+    def delete_company(cls, dept_id: int)-> tuple:
+        """
+        delete department record
+        :param dept_id:
+        :return:
+        """
+        dept_queryset = LoonCompany.objects.filter(id=dept_id, is_deleted=0)
+        if not dept_queryset:
+            return False, 'dept is not existed or has been deleted'
+        dept_queryset.update(is_deleted=1)
+        return True, ''
+
 
 
 account_base_service_ins = AccountBaseService()

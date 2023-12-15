@@ -340,8 +340,10 @@ class TicketBaseService(BaseService):
         if title_template:
             title = title_template.format(**title_render_data)
 
+        flag, state_info= workflow_state_service_ins.get_workflow_init_state(workflow_id=workflow_id)
+
         new_ticket_obj = TicketRecord(sn=ticket_sn, title=title, workflow_id=workflow_id,
-                                      state_id=destination_state_id, parent_ticket_id=parent_ticket_id,
+                                      state_id=state_info['id'], parent_ticket_id=parent_ticket_id,
                                       parent_ticket_state_id=parent_ticket_state_id,
                                       participant=destination_participant,
                                       participant_type_id=destination_participant_type_id, relation=username,
