@@ -4,6 +4,14 @@ from apps.loon_base_model import BaseModel
 from apps.workflow.models import Workflow
 
 
+class LoonCompany(BaseModel):
+    """
+    公司
+    """
+    name = models.CharField('名称', max_length=50)
+    description = models.CharField('描述', max_length=50, default='')
+    creator = models.CharField('创建人', max_length=50)
+
 class LoonDept(BaseModel):
     """
     部门
@@ -18,6 +26,7 @@ class LoonDept(BaseModel):
     gmt_created = models.DateTimeField('创建时间', auto_now_add=True)
     gmt_modified = models.DateTimeField('更新时间', auto_now=True)
     is_deleted = models.BooleanField('已删除', default=False)
+    company = models.ForeignKey(LoonCompany, to_field='id', db_constraint=False, on_delete=models.DO_NOTHING, null=True)
 
     def get_dict(self):
         dept_dict_info = super().get_dict()
@@ -239,4 +248,3 @@ class AppToken(BaseModel):
         else:
             role_dict_info['creator_info'] = dict(creator_id=0, creator_alias='', creator_username=getattr(self, 'creator'))
         return role_dict_info
-

@@ -265,6 +265,7 @@ class LoonDeptView(LoonBaseView):
         Optional('leader'): str,
         Optional('approver'): str,
         Optional('label'): str,
+        Optional('company_id'): str,
     })
 
     @manage_permission_check('admin')
@@ -287,7 +288,8 @@ class LoonDeptView(LoonBaseView):
                         page=paginator_info.get('page'), total=paginator_info.get('total'))
             code, msg, = 0, ''
         else:
-            code, data = -1, ''
+            code, msg, data = -1, '', []
+
         return api_response(code, msg, data)
 
     @manage_permission_check('admin')
@@ -305,10 +307,11 @@ class LoonDeptView(LoonBaseView):
         parent_dept_id = request_data_dict.get('parent_dept_id')
         leader = request_data_dict.get('leader')
         approver = request_data_dict.get('approver')
+        company_id = request_data_dict.get('company_id', None)
 
         label = request_data_dict.get('label')
         creator = request.user.username
-        flag, result = account_base_service_ins.add_dept(name, parent_dept_id, leader, approver, label, creator)
+        flag, result = account_base_service_ins.add_dept(name, parent_dept_id, leader, approver, label, creator, company_id)
         if flag is False:
             return api_response(-1, result, {})
         return api_response(0, result, {})
@@ -755,4 +758,125 @@ class LoonSimpleUserView(LoonBaseView):
             code, msg, = 0, ''
         else:
             code, data, msg = -1, '', result
+        return api_response(code, msg, data)
+
+
+
+@method_decorator(login_required, name='dispatch')
+class LoonCompanyView(LoonBaseView):
+    post_schema = Schema({
+        'name': And(str, lambda n: n != ''),
+        Optional('description'): str,
+    })
+
+    @manage_permission_check('admin')
+    def get(self, request, *args, **kwargs):
+        """
+        部门列表
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        request_data = request.GET
+        search_value = request_data.get('search_value', '')
+        per_page = int(request_data.get('per_page', 10))
+        page = int(request_data.get('page', 1))
+        flag, result = account_base_service_ins.get_company_list(search_value, page, per_page)
+        if flag is not False:
+            paginator_info = result.get('paginator_info')
+            data = dict(value=result.get('company_result_object_format_list'), per_page=paginator_info.get('per_page'),
+                        page=paginator_info.get('page'), total=paginator_info.get('total'))
+            code, msg, = 0, ''
+        else:
+            code, msg, data = -1, '', []
+        return api_response(code, msg, data)
+
+    @manage_permission_check('admin')
+    def post(self, request, *args, **kwargs):
+        """
+        新增部门
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        json_str = request.body.decode('utf-8')
+        request_data_dict = json.loads(json_str)
+        name = request_data_dict.get('name')
+        description = request_data_dict.get('description')
+
+        creator = request.user.username
+        flag, result = account_base_service_ins.add_company(name, description, creator)
+        if flag is False:
+            return api_response(-1, result, {})
+        return api_response(0, result, {})
+
+
+@method_decorator(login_required, name='dispatch')
+class LoonDeptDetailView(LoonBaseView):
+    patch_schema = Schema({
+        'name': And(str, lambda n: n != '', error='name is need'),
+        Optional('description'): str,
+    })
+
+    @manage_permission_check('admin')
+    def delete(self, request, *args, **kwargs):
+        """
+        delete dept
+        删除部门
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        operator = request.user.username
+        company_id = kwargs.get('company_id')
+        flag, result = account_base_service_ins.delete_company(company_id)
+        if flag is False:
+            return api_response(-1, result, {})
+        return api_response(0, '', {})
+
+    @manage_permission_check('admin')
+    def patch(self, request, *args, **kwargs):
+        """
+        更新部门
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        company_id = kwargs.get('company_id')
+        json_str = request.body.decode('utf-8')
+        request_data_dict = json.loads(json_str)
+        name = request_data_dict.get('name')
+        description = request_data_dict.get('description')
+
+        flag, result = account_base_service_ins.update_company(company_id,name,description)
+        if flag is False:
+            return api_response(-1, result, {})
+        return api_response(0, '', {})
+
+
+class LoonSimpleDeptView(LoonBaseView):
+    def get(self, request, *args, **kwargs):
+        """
+        部门列表，简单信息
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        request_data = request.GET
+        search_value = request_data.get('search_value', '')
+        per_page = int(request_data.get('per_page', 10))
+        page = int(request_data.get('page', 1))
+        flag, result = account_base_service_ins.get_dept_list(search_value, page, per_page, simple=True)
+        if flag is not False:
+            paginator_info = result.get('paginator_info')
+            data = dict(value=result.get('dept_result_object_format_list'), per_page=paginator_info.get('per_page'),
+                        page=paginator_info.get('page'), total=paginator_info.get('total'))
+            code, msg, = 0, ''
+        else:
+            code, data = -1, ''
         return api_response(code, msg, data)
