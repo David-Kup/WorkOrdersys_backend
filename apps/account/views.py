@@ -25,6 +25,7 @@ class LoonUserView(LoonBaseView):
         'dept_ids': str,
         'type_id': int,
         'is_active': Use(bool),
+        Optional('company_id'): str,
 
     })
 
@@ -74,6 +75,7 @@ class LoonUserView(LoonBaseView):
         dept_ids = request_data_dict.get('dept_ids')
         is_active = request_data_dict.get('is_active')
         type_id = request_data_dict.get('type_id')
+        company_id = request_data_dict.get('company_id', None)
         creator = request.user.username
         if (email == None):
             email = ''
@@ -81,7 +83,7 @@ class LoonUserView(LoonBaseView):
             phone = ''
         if (dept_ids == None):
             dept_ids = ''
-        flag, result = account_base_service_ins.add_user(username, alias, email, phone, dept_ids, is_active, type_id, creator, password)
+        flag, result = account_base_service_ins.add_user(username, alias, email, phone, dept_ids, is_active, type_id, creator, company_id, password)
         if flag is False:
             code, msg, data = -1, result, {}
         else:
@@ -99,7 +101,8 @@ class LoonUserDetailView(LoonBaseView):
         # 'phone': str,
         'dept_ids': str,
         'is_active': Use(bool),
-        'type_id': int
+        'type_id': int,
+        Optional('company_id'): str,
     })
 
     @manage_permission_check('admin')
@@ -120,6 +123,7 @@ class LoonUserDetailView(LoonBaseView):
         phone = request_data_dict.get('phone')
         dept_ids = request_data_dict.get('dept_ids')
         type_id = request_data_dict.get('type_id')
+        company_id = request_data_dict.get('company_id', None)
 
         is_active = request_data_dict.get('is_active')
 
@@ -131,7 +135,7 @@ class LoonUserDetailView(LoonBaseView):
             dept_ids = ''
 
         flag, result = account_base_service_ins.edit_user(user_id, username, alias, email, phone, dept_ids, is_active,
-                                                          type_id)
+                                                          type_id, company_id)
         if flag is not False:
             code, msg, data = 0, '', {}
         else:
@@ -325,6 +329,7 @@ class LoonDeptDetailView(LoonBaseView):
         Optional('leader'): str,
         Optional('approver'): str,
         Optional('label'): str,
+        Optional('company_id'): str,
     })
 
     @manage_permission_check('admin')
@@ -361,9 +366,10 @@ class LoonDeptDetailView(LoonBaseView):
         leader = request_data_dict.get('leader')
         approver = request_data_dict.get('approver')
         label = request_data_dict.get('label')
+        company_id = request_data_dict.get('company_id', None)
 
         flag, result = account_base_service_ins.update_dept(dept_id,name, parent_dept_id, leader,
-                                                            approver, label)
+                                                            approver, label, company_id)
         if flag is False:
             return api_response(-1, result, {})
         return api_response(0, '', {})
@@ -814,7 +820,7 @@ class LoonCompanyView(LoonBaseView):
 
 
 @method_decorator(login_required, name='dispatch')
-class LoonDeptDetailView(LoonBaseView):
+class LoonCompanyDetailView(LoonBaseView):
     patch_schema = Schema({
         'name': And(str, lambda n: n != '', error='name is need'),
         Optional('description'): str,

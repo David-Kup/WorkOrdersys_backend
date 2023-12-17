@@ -146,6 +146,7 @@ class LoonUser(AbstractBaseUser):
     gmt_created = models.DateTimeField('创建时间', auto_now_add=True)
     gmt_modified = models.DateTimeField('更新时间', auto_now=True)
     is_deleted = models.BooleanField('已删除', default=False)
+    company = models.ForeignKey(LoonCompany, to_field='id', db_constraint=False, on_delete=models.DO_NOTHING, null=True)
 
     objects = LoonUserManager()
     USERNAME_FIELD = 'username'
