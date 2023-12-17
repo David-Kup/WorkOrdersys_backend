@@ -2,7 +2,7 @@ from django.urls import path
 from apps.account.views import LoonUserView, LoonUserDetailView, LoonRoleView, LoonDeptView, LoonAppTokenView, LoonCompanyView, \
     LoonAppTokenDetailView, \
     LoonLoginView, LoonLogoutView, LoonUserRoleView, LoonRoleUserView, LoonUserResetPasswordView, LoonRoleDetailView, \
-    LoonDeptDetailView, \
+    LoonDeptDetailView, LoonCompanyDetailView, \
     LoonRoleUserDetailView, LoonSimpleUserView, LoonSimpleAppTokenView, LoonSimpleDeptView, LoonUserChangePasswordView
 
 urlpatterns = [
@@ -26,5 +26,5 @@ urlpatterns = [
     path('/app_token/<int:app_token_id>', LoonAppTokenDetailView.as_view()),
     path('/companies', LoonCompanyView.as_view()),
     path('/simple_companies', LoonSimpleDeptView.as_view()),
-    path('/companies/<int:company_id>', LoonDeptDetailView.as_view()),
+    path('/companies/<int:company_id>', LoonCompanyDetailView.as_view()),
 ]

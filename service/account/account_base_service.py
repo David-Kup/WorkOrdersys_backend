@@ -457,6 +457,8 @@ class AccountBaseService(BaseService):
                     user_dept_info_list.append(
                         dict(name=user_dept.dept.name, id=user_dept.dept.id))
             user_result_format_dict['user_dept_info_list'] = user_dept_info_list
+            if(user_result_format_dict['company']):
+                user_result_format_dict['company'] = user_result_format_dict['company'].get_dict()
             if simple:
                 # 去除敏感信息
                 user_result_format_dict.pop('last_login')
@@ -475,7 +477,7 @@ class AccountBaseService(BaseService):
     @classmethod
     @auto_log
     def add_user(cls, username: str, alias: str, email: str, phone: str, dept_ids: str, is_active: int,
-                 type_id: int, creator: str, password: str='')->tuple:
+                 type_id: int, creator: str, company_id: int, password: str='')->tuple:
         """
         新增用户， 因为非管理员或者工作流管理员无需登录管理后台，密码字段留空
         add user, not support set password, you need reset password
@@ -490,12 +492,19 @@ class AccountBaseService(BaseService):
         :param password:
         :return:
         """
+        if (company_id):
+            try:
+                company=LoonCompany.objects.get(id=company_id, is_deleted=False)
+                print(company)
+            except ObjectDoesNotExist:
+                raise ValidationError('company with provided ID does not exist or is not active.')
+            
         password_str = make_password(password, None, 'pbkdf2_sha256')
+        print(password_str)
         user_obj = LoonUser(username=username, alias=alias, email=email, phone=phone,
                             is_active=is_active, type_id=type_id,
-                            creator=creator, password=password_str)
+                            creator=creator, password=password_str, company_id=company_id)
         user_obj.save()
-
         queryset_list = []
         if(dept_ids!=''):
             for dept_id in dept_ids.split(','):
@@ -509,7 +518,7 @@ class AccountBaseService(BaseService):
     @classmethod
     @auto_log
     def edit_user(cls, user_id: int, username: str, alias: str, email: str, phone: str, dept_ids: str, is_active: int,
-                  type_id: int)-> tuple:
+                  type_id: int, company_id: int)-> tuple:
         """
         edit user
         :param user_id:
@@ -522,9 +531,16 @@ class AccountBaseService(BaseService):
         :param type_id:
         :return:
         """
+        if (company_id):
+            try:
+                company=LoonCompany.objects.get(id=company_id, is_deleted=False)
+                print(company)
+            except ObjectDoesNotExist:
+                raise ValidationError('company with provided ID does not exist or is not active.')
+            
         user_obj = LoonUser.objects.filter(id=user_id, is_deleted=0)
         user_obj.update(username=username, alias=alias, email=email, phone=phone, is_active=is_active,
-                        type_id=type_id)
+                        type_id=type_id, company_id=company_id)
         # todo 更新部门信息
         dept_id_str_list = dept_ids.split(',')
         dept_id_int_list = [int(dept_id_str) for dept_id_str in dept_id_str_list]
@@ -692,11 +708,9 @@ class AccountBaseService(BaseService):
             dept_result_paginator = paginator.page(paginator.num_pages)
         dept_result_object_list = dept_result_paginator.object_list
         dept_result_object_format_list = []
-        print('++++++++++++++++++++++++++++++++++++++')
 
         for dept_result_object in dept_result_object_list:
             result_dict = dept_result_object.get_dict()
-            print('----------------------------------------------------------')
             if(result_dict['company']):
                 result_dict['company'] = result_dict['company'].get_dict()
             
@@ -737,7 +751,7 @@ class AccountBaseService(BaseService):
 
     @classmethod
     @auto_log
-    def update_dept(cls, dept_id: int, name: str, parent_dept_id: int, leader: str, approver: str, label: str)->tuple:
+    def update_dept(cls, dept_id: int, name: str, parent_dept_id: int, leader: str, approver: str, label: str, company_id: int)->tuple:
         """
         update department record
         更新部门
@@ -752,7 +766,14 @@ class AccountBaseService(BaseService):
         dept_queryset = LoonDept.objects.filter(id=dept_id, is_deleted=0)
         if not dept_queryset:
             return False, 'dept is not existed or has been deleted'
-        dept_queryset.update(name=name, parent_dept_id=parent_dept_id, leader=leader, approver=approver, label=label)
+        if (company_id):
+            # Check if the company with the given ID exists and is active
+            try:
+                company = LoonCompany.objects.get(id=company_id, is_deleted=False)
+            except ObjectDoesNotExist:
+                raise ValidationError("Company with provided ID does not exist or is not active.")
+        print('-'*20)
+        dept_queryset.update(name=name, parent_dept_id=parent_dept_id, leader=leader, approver=approver, label=label, company_id=company_id)
         return True, ''
 
     @classmethod
