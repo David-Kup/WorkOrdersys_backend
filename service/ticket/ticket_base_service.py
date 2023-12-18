@@ -105,6 +105,14 @@ class TicketBaseService(BaseService):
         if kwargs.get('parent_ticket_state_id'):
             query_params &= Q(parent_ticket_state_id=kwargs.get('parent_ticket_state_id'))
 
+        if(kwargs.get('company_id')):
+            flag_users, users = account_base_service_ins.get_user_list_by_company_id(kwargs.get('company_id'), page=0, per_page=10000)
+            usernames = [user['username'] for user in users['user_result_object_format_list']]
+            print(usernames)
+            if(len(usernames) > 0):
+                query_params &= Q(creator__in=usernames)
+                print(query_params)
+
         if sn:
             query_params &= Q(sn__startswith=sn)
         if title:
@@ -219,6 +227,15 @@ class TicketBaseService(BaseService):
             state_obj_flag, state_obj = workflow_state_service_ins.get_workflow_state_by_id(ticket_result_object.state_id)
             state_name = state_obj.name if state_obj_flag else '未知状态'
             flag, participant_info = cls.get_ticket_format_participant_info(ticket_result_object.id)
+            dic_data = ticket_result_object.get_dict()
+            dep_obj = {}
+            if(dic_data['participant']):
+                flag_dep, dep_obj=account_base_service_ins.get_dept_by_id(int(dic_data['participant']))
+                if(dep_obj):
+                    dep_obj = dep_obj.get_dict()
+                    if (dep_obj['company']):
+                        dep_obj['company'] = dep_obj['company'].get_dict()
+                        print(dep_obj)
 
             flag, workflow_obj = workflow_base_service_ins.get_by_id(ticket_result_object.workflow_id)
             workflow_info_dict = dict(workflow_id=workflow_obj.id, workflow_name=workflow_obj.name)
@@ -227,9 +244,12 @@ class TicketBaseService(BaseService):
             if flag:
                 flag, dept_dict_info = account_base_service_ins.get_user_dept_info(user_id=creator_obj.id)
 
+                dic_data = creator_obj.get_dict()
+                if(dic_data['company']):
+                    dic_data['company'] = dic_data['company'].get_dict()
                 creator_info = dict(username=creator_obj.username, alias=creator_obj.alias,
                                     is_active=creator_obj.is_active, email=creator_obj.email, phone=creator_obj.phone,
-                                    dept_info=dept_dict_info)
+                                    dept_info=dept_dict_info, company=dic_data['company'])
             else:
                 creator_info = dict(username=ticket_result_object.creator, alias='', is_active=False, email='',
                                     phone='', dept_info={})
@@ -241,7 +261,7 @@ class TicketBaseService(BaseService):
             ticket_format_obj.update(dict(state=dict(state_id=ticket_result_object.state_id, state_name=state_name,
                                                      state_label=state_obj_label),
                                           participant_info=participant_info, creator_info=creator_info,
-                                          workflow_info=workflow_info_dict))
+                                          workflow_info=workflow_info_dict, participant_dept=dep_obj))
 
             ticket_result_restful_list.append(ticket_format_obj)
         return True, dict(ticket_result_restful_list=ticket_result_restful_list,
@@ -720,6 +740,7 @@ class TicketBaseService(BaseService):
         # order by field's order id
         new_field_list = sorted(new_field_list, key=lambda r: r['order_id'])
         flag, creator_obj = account_base_service_ins.get_user_by_username(ticket_obj.creator)
+
         if flag:
 
             flag, dept_dict_info = account_base_service_ins.get_user_dept_info(user_id=creator_obj.id)

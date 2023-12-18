@@ -1013,6 +1013,8 @@ class AccountBaseService(BaseService):
         if flag is False:
             return False, user_obj
         user_info = user_obj.get_dict()
+        if(user_info['company']):
+            user_info['company'] = user_info['company'].get_dict()
         timestamp = int(time.time())
         jwt_salt = settings.JWT_SALT
         jwt_info = jwt.encode(
@@ -1135,6 +1137,63 @@ class AccountBaseService(BaseService):
             return False, 'dept is not existed or has been deleted'
         dept_queryset.update(is_deleted=1)
         return True, ''
+    
+
+    @classmethod
+    @auto_log
+    def get_user_list_by_company_id(cls, search_value: str, page: int=1, per_page: int=10, simple=False)->tuple:
+        """
+        get user restful info list by query params: search_value, page, per_page
+        :param search_value: support user's username, and user's alias. fuzzy query
+        :param page:
+        :param per_page:
+        :param simple: 是否只返回简单信息
+        :return:
+        """
+        query_params = Q(is_deleted=False)
+        if search_value:
+            query_params &= Q(company_id=search_value)
+        user_objects = LoonUser.objects.filter(query_params)
+        paginator = Paginator(user_objects, per_page)
+        try:
+            user_result_paginator = paginator.page(page)
+        except PageNotAnInteger:
+            user_result_paginator = paginator.page(1)
+        except EmptyPage:
+            # If page is out of range (e.g. 9999), deliver last page of results
+            user_result_paginator = paginator.page(paginator.num_pages)
+        user_result_object_list = user_result_paginator.object_list
+        user_result_object_format_list = []
+        user_id_list = [user_result_object.id for user_result_object in user_result_object_list]
+        # 获取用户所在部门信息
+        user_dept_list = LoonUserDept.objects.filter(user_id__in=user_id_list, is_deleted=0)
+
+        for user_result_object in user_result_object_list:
+            user_result_format_dict = user_result_object.get_dict()
+            # todo 获取部门信息
+            user_dept_info_list = []
+            for user_dept in user_dept_list:
+                if user_result_object.id == user_dept.user_id:
+                    user_dept_info_list.append(
+                        dict(name=user_dept.dept.name, id=user_dept.dept.id))
+            user_result_format_dict['user_dept_info_list'] = user_dept_info_list
+            if(user_result_format_dict['company']):
+                user_result_format_dict['company'] = user_result_format_dict['company'].get_dict()
+            if simple:
+                # 去除敏感信息
+                user_result_format_dict.pop('last_login')
+                user_result_format_dict.pop('email')
+                user_result_format_dict.pop('creator_info')
+                user_result_format_dict.pop('phone')
+                user_result_format_dict.pop('type_id')
+                user_result_format_dict.pop('gmt_created')
+                user_result_format_dict.pop('gmt_modified')
+                user_result_format_dict.pop('is_deleted')
+            user_result_object_format_list.append(user_result_format_dict)
+
+        return True, dict(user_result_object_format_list=user_result_object_format_list,
+                          paginator_info=dict(per_page=per_page, page=page, total=paginator.count))
+
 
 
 
