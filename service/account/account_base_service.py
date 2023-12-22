@@ -543,7 +543,8 @@ class AccountBaseService(BaseService):
                         type_id=type_id, company_id=company_id)
         # todo 更新部门信息
         dept_id_str_list = dept_ids.split(',')
-        dept_id_int_list = [int(dept_id_str) for dept_id_str in dept_id_str_list]
+        # Filter out any empty strings and convert the rest to integers
+        dept_id_int_list = [int(dept_id_str) for dept_id_str in dept_id_str_list if dept_id_str]
         user_id = user_obj.first().id
         user_dept_queryset = LoonUserDept.objects.filter(user_id=user_id, is_deleted=0).all()
         user_dept_id_exist = [user_dept.dept_id for user_dept in user_dept_queryset]
