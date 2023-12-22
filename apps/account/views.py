@@ -24,7 +24,7 @@ class LoonUserView(LoonBaseView):
         # 'phone': str,
         'dept_ids': str,
         'type_id': int,
-        'is_active': Use(bool),
+        Optional('is_active'): Use(bool),
         Optional('company_id'): str,
 
     })
@@ -42,6 +42,7 @@ class LoonUserView(LoonBaseView):
         search_value = request_data.get('search_value', '')
         per_page = int(request_data.get('per_page', 10))
         page = int(request_data.get('page', 1))
+        
 
         flag, result = account_base_service_ins.get_user_list(search_value, page, per_page)
         if flag is not False:
@@ -73,7 +74,7 @@ class LoonUserView(LoonBaseView):
         password = request_data_dict.get('password')
         phone = request_data_dict.get('phone')
         dept_ids = request_data_dict.get('dept_ids')
-        is_active = request_data_dict.get('is_active')
+        is_active = request_data_dict.get('is_active', 1)
         type_id = request_data_dict.get('type_id')
         company_id = request_data_dict.get('company_id', None)
         creator = request.user.username
@@ -100,7 +101,7 @@ class LoonUserDetailView(LoonBaseView):
         Optional('password'): str,
         # 'phone': str,
         'dept_ids': str,
-        'is_active': Use(bool),
+        Optional('is_active'): Use(bool),
         'type_id': int,
         Optional('company_id'): str,
     })
@@ -125,7 +126,7 @@ class LoonUserDetailView(LoonBaseView):
         type_id = request_data_dict.get('type_id')
         company_id = request_data_dict.get('company_id', None)
 
-        is_active = request_data_dict.get('is_active')
+        is_active = request_data_dict.get('is_active', 1)
 
         if (email == None):
             email = ''
